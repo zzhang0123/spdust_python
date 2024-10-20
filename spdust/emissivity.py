@@ -402,7 +402,7 @@ def emissivity(env, beta, ip, Ndipole, nu_tab, tumbling=True):
         if a < grainparams.a2:
             power_per_grain = dP_dnu_dOmega(env, a, ia, beta, ip, Ndipole, tumbling=tumbling)
         else:
-            power_per_grain = dP_dnu_dOmega(env, a, ia, beta, 2/3, Ndipole, tumbling=False)
+            power_per_grain = dP_dnu_dOmega(env, a, ia, beta, 2/3, Ndipole, tumbling=tumbling)
         
         nu_tab_a = power_per_grain[0, :]
         emiss_a = power_per_grain[1, :]
