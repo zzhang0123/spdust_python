@@ -8,9 +8,9 @@
 
 
 import numpy as np
-from spdust import SpDust_data_dir  
-from utils.util import cgsconst, makelogtab, DX_over_X, biinterp_func, coord_grid
-from spdust.grain_properties import asurf, N_C
+from ..spdust import SpDust_data_dir  
+from ..utils.util import cgsconst, makelogtab, DX_over_X, biinterp_func, coord_grid
+from ..spdust.grain_properties import asurf, N_C
 from scipy.interpolate import interp1d    
 import os      
 from numba import njit, jit

@@ -1,6 +1,6 @@
-from utils.util import cgsconst, makelogtab
-from spdust.grain_properties import N_C, N_H
-from spdust.emissivity import emissivity, free_free
+from ..utils.util import cgsconst, makelogtab
+from .grain_properties import N_C, N_H
+from .emissivity import emissivity, free_free
 import numpy as np
 
 pi = np.pi

@@ -1,11 +1,11 @@
-from spdust import SpDust_data_dir
-from utils.util import cgsconst, DX_over_X, maketab, makelogtab 
-from spdust.grain_properties import acx, Inertia, grainparams, rms_dipole, size_dist
-from spdust.charge_dist import charge_dist
-from spdust.infrared import FGIR_averaged
-from spdust.collisions import Tev_effective, FGn_averaged, FGi_averaged
-from spdust.plasmadrag import FGp_averaged
-from spdust.H2_photoemission import GH2, FGpe_averaged
+from ..spdust import SpDust_data_dir
+from ..utils.util import cgsconst, DX_over_X, maketab, makelogtab 
+from .grain_properties import acx, Inertia, grainparams, rms_dipole, size_dist
+from .charge_dist import charge_dist
+from .infrared import FGIR_averaged
+from .collisions import Tev_effective, FGn_averaged, FGi_averaged
+from .plasmadrag import FGp_averaged
+from .H2_photoemission import GH2, FGpe_averaged
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,7 @@ def tau_H(env, a):
     return 1.0 / (nh * mp * np.sqrt(2 * k * T / (pi * mp)) * 4 * pi * acx_val**4 / (3 * Inertia_val))
 
 # Function to calculate the inverse of the characteristic damping time through electric dipole radiation
-def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True):
+def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True, correct=False):
     """
     Returns the inverse of the characteristic damping time through electric dipole radiation.
     This corresponds to Eq. (29) in AHD09 and Eq. (47) in SAH10 for tumbling disklike grains.
@@ -62,12 +62,21 @@ def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True):
     T = env['T']  # temperature in K
     Inertia_val = Inertia(a)  # grain's moment of inertia
 
-    if tumbling:
-        # Tumbling disklike grains, SAH10 Eq. (47)
-        return (3 * k * T * (82 / 45 * mu_ip**2 + 32 / 9 * mu_op**2)) / (Inertia_val**2 * c**3)
-    else:
-        # Spherical grains or disklike grains with K = J, AHD09 Eq. (29)
-        return (2 * k * T * mu_ip**2) / (Inertia_val**2 * c**3)
+    if correct:
+        if tumbling and a < grainparams.a2:
+            # Tumbling disklike grains, SAH10 Eq. (47)
+            return (3 * k * T * (82 / 45 * mu_ip**2 + 32 / 9 * mu_op**2)) / (Inertia_val**2 * c**3)
+        else:
+            # Spherical grains or disklike grains with K = J, AHD09 Eq. (29)
+            return (2 * k * T * mu_ip**2) / (Inertia_val**2 * c**3)
+    else: # Use the old  IDL version - without the correction
+        if tumbling:
+            # Tumbling disklike grains, SAH10 Eq. (47)
+            return (3 * k * T * (82 / 45 * mu_ip**2 + 32 / 9 * mu_op**2)) / (Inertia_val**2 * c**3)
+        else:
+            # Spherical grains or disklike grains with K = J, AHD09 Eq. (29)
+            return (2 * k * T * mu_ip**2) / (Inertia_val**2 * c**3)
+
     
 def f_rot(env, a, ia, fZ, mu_ip, mu_op, tumbling=True):
     """

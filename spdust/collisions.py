@@ -1,8 +1,8 @@
-from spdust import SpDust_data_dir
-from utils.util import cgsconst, makelogtab, DX_over_X
-from spdust.grain_properties import grainparams, N_C, acx
-from spdust.charge_dist import Qabs, nu_uisrf
-from spdust.infrared import Temp, Energy_modes, IR_arrays
+from ..spdust import SpDust_data_dir
+from ..utils.util import cgsconst, makelogtab, DX_over_X
+from .grain_properties import grainparams, N_C, acx
+from .charge_dist import Qabs, nu_uisrf
+from .infrared import Temp, Energy_modes, IR_arrays
 
 import numpy as np
 from scipy.special import erf
