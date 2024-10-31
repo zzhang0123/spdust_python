@@ -9,7 +9,7 @@
 
 import numpy as np
 from ..spdust import SpDust_data_dir  
-from ..utils.util import cgsconst, makelogtab, DX_over_X, biinterp_func, coord_grid
+from ..utils.util import cgsconst, makelogtab, DX_over_X, biinterp_func, coord_grid, log_biinterplog
 from ..spdust.grain_properties import asurf, N_C
 from scipy.interpolate import interp1d    
 import os      
@@ -20,7 +20,6 @@ class paramjpe:
     # Stores the parameters used in the JPE calculation
     W = 4.4  # Work function in eV
 
-W = paramjpe.W
 
 class Qabstabs:
     # Stores the Qabs arrays
@@ -44,7 +43,7 @@ class jpe_arrays:
 # Constants
 c, q, k, mp, me, h, debye, eV = cgsconst.c, cgsconst.q, cgsconst.k, cgsconst.mp, cgsconst.me, cgsconst.h, cgsconst.debye, cgsconst.eV
 W = paramjpe.W
-pi = np.pi
+pi = cgsconst.pi
 
 # Equation (2), in eV
 @njit
@@ -124,7 +123,8 @@ def l_a():
     # Interpolate Im(m_perp) at additional wavelength points
     #Imm_perp_interp = np.exp(np.interp(np.log(lamb_para), np.log(lamb_perp), np.log(Imm_perp)))
     
-    interp_function = interp1d(np.log(lamb_perp), np.log(Imm_perp), kind='cubic', fill_value="extrapolate")
+    #interp_function = interp1d(np.log(lamb_perp), np.log(Imm_perp), kind='cubic', fill_value="extrapolate")
+    interp_function = interp1d(np.log(lamb_perp), np.log(Imm_perp), kind='linear', fill_value="zero")
     Imm_perp_interp = np.exp(interp_function(np.log(lamb_para)))
 
     # Convert wavelength to cm and calculate energy
@@ -300,14 +300,14 @@ def readPAH():
 
 readPAH()
 
-Qabs_interp_func_neu = biinterp_func(Qabstabs.Q_abs_neu, np.log(Qabstabs.a_tab), np.log(Qabstabs.Qabs_hnu_tab))
-Qabs_interp_func_ion = biinterp_func(Qabstabs.Q_abs_ion, np.log(Qabstabs.a_tab), np.log(Qabstabs.Qabs_hnu_tab)) 
+#Qabs_interp_func_neu = biinterp_func(Qabstabs.Q_abs_neu, np.log(Qabstabs.a_tab), np.log(Qabstabs.Qabs_hnu_tab))
+#Qabs_interp_func_ion = biinterp_func(Qabstabs.Q_abs_ion, np.log(Qabstabs.a_tab), np.log(Qabstabs.Qabs_hnu_tab)) 
 
 def Qabs(a, Z, hnu_tab_aux):
     Qabs_hnu_tab = Qabstabs.Qabs_hnu_tab
-    #a_tab = Qabstabs.a_tab
-    #Q_abs_ion = Qabstabs.Q_abs_ion
-    #Q_abs_neu = Qabstabs.Q_abs_neu
+    a_tab = Qabstabs.a_tab
+    Q_abs_ion = Qabstabs.Q_abs_ion
+    Q_abs_neu = Qabstabs.Q_abs_neu
 
     # Minimum frequency for which Q_abs is tabulated
     hnu_min = np.min(Qabs_hnu_tab)
@@ -320,20 +320,22 @@ def Qabs(a, Z, hnu_tab_aux):
     pts = coord_grid(np.log(a), np.log(hnu_tab_aux[ind]))
     if np.any(ind):
         if Z == 0:
-            Qtab[ind] = Qabs_interp_func_neu(pts)[0]
+            #Qtab[ind] = Qabs_interp_func_neu(pts)[0]
+            Qtab[ind] = log_biinterplog(Q_abs_neu, a_tab, Qabs_hnu_tab, a, hnu_tab_aux[ind])[0,:]
         else:
-            Qtab[ind] = Qabs_interp_func_ion(pts)[0]
-            #log_biinterplog(Q_abs_ion, a_tab, Qabs_hnu_tab, a, hnu_tab_aux[ind])
+            #Qtab[ind] = Qabs_interp_func_ion(pts)[0]
+            Qtab[ind] = log_biinterplog(Q_abs_ion, a_tab, Qabs_hnu_tab, a, hnu_tab_aux[ind])[0,:]
 
     # For long wavelengths where hnu_tab <= hnu_min, assume Qabs ∝ ν^2
     ind = hnu_tab_aux <= hnu_min
-    pts = coord_grid(np.log(a), np.log(hnu_min))
+    #pts = coord_grid(np.log(a), np.log(hnu_min))
     if np.any(ind):
         if Z == 0:
-            Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * Qabs_interp_func_neu(pts)[0]
+            #Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * Qabs_interp_func_neu(pts)[0]
+            Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * log_biinterplog(Q_abs_neu, a_tab, Qabs_hnu_tab, a, hnu_min)[0,0]
         else:
-            Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * Qabs_interp_func_ion(pts)[0]
-            #Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * log_biinterplog(Q_abs_ion, a_tab, Qabs_hnu_tab, a, hnu_min)[0]
+            #Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * Qabs_interp_func_ion(pts)[0]
+            Qtab[ind] = (hnu_tab_aux[ind] / hnu_min)**2 * log_biinterplog(Q_abs_ion, a_tab, Qabs_hnu_tab, a, hnu_min)[0,0]
 
     return Qtab
 
@@ -602,18 +604,17 @@ def charge_dist_aux(Chi, nh, T, xh, xc, a):
     Ji_pos = np.zeros(Z_max + 1)
     Je_pos = np.zeros(Z_max + 1)
     Jpepos_val, Jpeneg_val = JPEisrf(a)
-    Jpe_ISRF = {'Jpepos': Jpepos_val, 'Jpeneg': Jpeneg_val}
 
     for j in range(abs(Z_min) + 1):
         Z = -j
         Ji_neg[j] = J_ion_aux(nh, T, xh, xc, Z, a)
         Je_neg[j] = J_electron_aux(nh, T, xh, xc, Z, a)
-    Jpe_neg = Chi * Jpe_ISRF['Jpeneg']
+    Jpe_neg = Chi * Jpeneg_val
 
     for Z in range(Z_max + 1):
         Ji_pos[Z] = J_ion_aux(nh, T, xh, xc, Z, a)
         Je_pos[Z] = J_electron_aux(nh, T, xh, xc, Z, a)
-    Jpe_pos = Chi * Jpe_ISRF['Jpepos']
+    Jpe_pos = Chi * Jpepos_val
 
     # Compute charge distribution function using DL98b (4)
     fpos[0] = 1.0

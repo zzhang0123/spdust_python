@@ -57,7 +57,7 @@ def coord_grid(X, Y):
     points[:, :, 1] = yg
     return points
 
-def biinterplog(f, X, Y, Xnew, Ynew):
+def biinterplog_old(f, X, Y, Xnew, Ynew):
     """
     Interpolates f given at X, Y (logarithmically spaced) at Xnew, Ynew.
 
@@ -84,6 +84,49 @@ def biinterplog(f, X, Y, Xnew, Ynew):
 
     # Interpolation requires coordinates as pairs
     return griddata(points, f.flatten(), (grix_log_x_new, grid_log_y_new), method='linear')
+
+
+def biinterplog(f, X, Y, Xnew, Ynew):
+    """
+    Interpolates the 2D array `f` given at logarithmically spaced points `X` and `Y`
+    at new points `Xnew` and `Ynew`.
+    
+    Parameters:
+    - f: 2D array of shape (Nx, Ny), function values at grid points.
+    - X: 1D array of length Nx, original X-axis (logarithmic spacing).
+    - Y: 1D array of length Ny, original Y-axis (logarithmic spacing).
+    - Xnew: 1D array, new X-axis points to interpolate to.
+    - Ynew: 1D array, new Y-axis points to interpolate to.
+    
+    Returns:
+    - Interpolated values at the specified `Xnew` and `Ynew` points.
+    """
+    
+
+    # Convert X and Y to logarithmic space
+    logX = np.log(X)
+    logY = np.log(Y)
+    
+    # Create indices for interpolation based on X and Y
+    Xind = np.arange(len(X))
+    Yind = np.arange(len(Y))
+    
+    # Interpolate indices for the new X and Y in log space
+    Xind_new = np.interp(np.log(Xnew), logX, Xind)
+    Yind_new = np.interp(np.log(Ynew), logY, Yind)
+    Xind_new = np.array(Xind_new).reshape(-1,)
+    Yind_new = np.array(Yind_new).reshape(-1,)
+    
+    # Set up 2D grid interpolator on the original index grid
+    interpolator = RegularGridInterpolator((Xind, Yind), f, method='linear')
+    
+    # Prepare points for interpolating to `Xind_new`, `Yind_new`
+    points = np.array([[xi, yi] for xi in Xind_new for yi in Yind_new])
+    
+    # Interpolate and reshape result
+    interpolated_values = interpolator(points)
+    return interpolated_values.reshape(np.size(Xnew), np.size(Ynew))
+
 
 def log_biinterplog(f, X, Y, Xnew, Ynew):
     """

@@ -329,7 +329,11 @@ def g1g2(psi, mu_tilde):
     """
 
     # Number of elements in mu_tilde
-    Ndipole = len(mu_tilde)
+    Ndipole = np.size(mu_tilde)
+
+    # if type is float, convert to array
+    if isinstance(mu_tilde, (int, float)):
+        mu_tilde = np.array([mu_tilde])
 
     # Initialize g1 and g2 arrays
     g1 = np.zeros(Ndipole)
@@ -485,8 +489,9 @@ def FGi_averaged(env, a, T_ev, mu_tab, fZ):
     """
 
     # Initialize Fi and Gi as arrays of zeros with the same dimensions as mu_tab
-    Fi = np.zeros_like(mu_tab)
-    Gi = np.zeros_like(mu_tab)
+    Fi = np.zeros_like(mu_tab).reshape(-1)
+    Gi = np.zeros_like(mu_tab).reshape(-1)
+
 
     # Number of grain charge values in fZ
     NZg = fZ.shape[1]

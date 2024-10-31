@@ -37,7 +37,7 @@ mp = cgsconst.mp
 h = cgsconst.h
 c = cgsconst.c
 eV = cgsconst.eV
-pi = np.pi
+pi = cgsconst.pi
 
 Energy_tab_max = np.max(Qabstabs.Qabs_hnu_tab) # Maximum energy (eV) in the Qabs_hnu_tab
 print(f"Maximum energy in the Qabs_hnu_tab is {Energy_tab_max:.2f} eV.")
@@ -539,7 +539,6 @@ def distribution(a, Z, Chi,  Energy_modes_op, Energy_modes_ip, Energy_modes_CH, 
         print(f"E_M = {Energy_max / eV:.2f} eV is not high enough in 'distribution'. Using {3 * Energy_max / eV:.2f} eV instead")
         Energy_max *= 3
         aux1, M = Btilde_ISRF_func(a, Z,  Energy_modes_op, Energy_modes_ip, Energy_modes_CH, M, Energy_max) 
-        print("M = ", M)
         Btilde = Chi * aux1 
         X_tab = np.ones(M + 1)  # Reset X_tab since M might have changed
         
@@ -568,8 +567,6 @@ def distribution(a, Z, Chi,  Energy_modes_op, Energy_modes_ip, Energy_modes_CH, 
         X_tab[j] = np.sum(Btilde[j, 0:j] * X_tab[0:j])  # Reform array and compute sum
         X_tab[0:j + 1] =  X_tab[0:j + 1] / np.sum(X_tab[0:j + 1])  # Normalize the distribution
     '''
-    print("M = ", M)
-    print("x_tab[M]= ", X_tab[M])
 
     # Get the energy bins
     Energy_bins_eval = Energy_bins(a,  Energy_modes_op, Energy_modes_ip, Energy_modes_CH, M, Energy_max)  

@@ -8,7 +8,7 @@ c = cgsconst.c
 q = cgsconst.q
 k = cgsconst.k
 mp = cgsconst.mp
-debye = 1e-18
+debye = cgsconst.debye
 eV = cgsconst.eV
 
 
@@ -56,6 +56,9 @@ def SPDUST(environment, tumbling=True, output_file=None, min_freq=None, max_freq
         Nnu = n_freq
 
     nu_tab = makelogtab(numin, numax, Nnu)
+
+    # Debugging
+    print(f"mu(1E-7 cm) = {mu_1d_7} debye (beta = {beta0 / debye} debye)")
 
     # Calculate emissivity
     if tumbling:

@@ -773,8 +773,8 @@ def FGp_averaged(env, a, fZ, omega, mu_ip, mu_op, tumbling=True):
     Returns:
     - A dictionary with Fp and Gp arrays. Shape: [Nomega, Nmu]
     """
-    mu_ip_2 = np.array(mu_ip)**2
-    mu_op_2 = np.array(mu_op)**2
+    mu_ip_2 = np.array(mu_ip).reshape(-1)**2 # shape: [Nmu]
+    mu_op_2 = np.array(mu_op).reshape(-1)**2
     if tumbling:
         # Disklike tumbling grain
         Gp_op = 2 / 3 * Gp_sphere_per_mu2_averaged(env, a, fZ, 2 * omega)
@@ -787,17 +787,17 @@ def FGp_averaged(env, a, fZ, omega, mu_ip, mu_op, tumbling=True):
         omegaF_plus = (8 + np.sqrt(13 / 3)) / 5 * omega
         omegaF_minus = (8 - np.sqrt(13 / 3)) / 5 * omega
         Fp_ip = 0.5 * (Gp_sphere_per_mu2_averaged(env, a, fZ, omegaF_plus) +
-                       Gp_sphere_per_mu2_averaged(env, a, fZ, omegaF_minus))
+                       Gp_sphere_per_mu2_averaged(env, a, fZ, omegaF_minus)) 
 
-        Fp = np.matmul(Fp_ip.reshape(-1,1), mu_ip_2.reshape(1,-1)) + np.matmul(Fp_op.reshape(-1,1), mu_op_2.reshape(1,-1))
-        Gp = np.matmul(Gp_ip.reshape(-1,1), mu_ip_2.reshape(1,-1)) + np.matmul(Gp_op.reshape(-1,1), mu_op_2.reshape(1,-1))
-        return {'Fp': Fp, 'Gp': Gp}
-
-   
-    # Standard spherical grain with K = J
-    Gp = Gp_sphere_per_mu2_averaged(env, a, fZ, omega)
-    Gp = np.matmul(Gp.reshape(-1,1), mu_ip_2.reshape(1,-1))
-    Fp = Gp
+        Fp = np.matmul(Fp_ip.reshape(-1,1), mu_ip_2.reshape(1,-1)) \
+            + np.matmul(Fp_op.reshape(-1,1), mu_op_2.reshape(1,-1))
+        Gp = np.matmul(Gp_ip.reshape(-1,1), mu_ip_2.reshape(1,-1)) \
+            + np.matmul(Gp_op.reshape(-1,1), mu_op_2.reshape(1,-1))
+    else:
+        # Standard spherical grain with K = J
+        Gp = Gp_sphere_per_mu2_averaged(env, a, fZ, omega)
+        Gp = np.matmul(Gp.reshape(-1,1), mu_ip_2.reshape(1,-1))
+        Fp = Gp
 
     return {'Fp': Fp, 'Gp': Gp}
 

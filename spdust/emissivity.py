@@ -44,7 +44,7 @@ def tau_H(env, a):
     return 1.0 / (nh * mp * np.sqrt(2 * k * T / (pi * mp)) * 4 * pi * acx_val**4 / (3 * Inertia_val))
 
 # Function to calculate the inverse of the characteristic damping time through electric dipole radiation
-def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True, correct=False):
+def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True, corrected=False):
     """
     Returns the inverse of the characteristic damping time through electric dipole radiation.
     This corresponds to Eq. (29) in AHD09 and Eq. (47) in SAH10 for tumbling disklike grains.
@@ -62,7 +62,7 @@ def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True, correct=False):
     T = env['T']  # temperature in K
     Inertia_val = Inertia(a)  # grain's moment of inertia
 
-    if correct:
+    if corrected:
         if tumbling and a < grainparams.a2:
             # Tumbling disklike grains, SAH10 Eq. (47)
             return (3 * k * T * (82 / 45 * mu_ip**2 + 32 / 9 * mu_op**2)) / (Inertia_val**2 * c**3)
@@ -78,7 +78,7 @@ def tau_ed_inv(env, a, mu_ip, mu_op, tumbling=True, correct=False):
             return (2 * k * T * mu_ip**2) / (Inertia_val**2 * c**3)
 
     
-def f_rot(env, a, ia, fZ, mu_ip, mu_op, tumbling=True):
+def f_rot(env, a, fZ, mu_ip, mu_op, tumbling=True):
     """
     Returns the rotational distribution function f_a normalized such that:
     ∫ f_a(omega) * 4 * pi * omega^2 d(omega) = 1.
@@ -108,7 +108,6 @@ def f_rot(env, a, ia, fZ, mu_ip, mu_op, tumbling=True):
     # Characteristic timescales
     tau_H_val = tau_H(env, a)
     tau_ed_inv_val = tau_ed_inv(env, a, mu_ip, mu_op, tumbling=tumbling)
-
     # Evaporation temperature
     Tev_val = Tev_effective(env, a)
 
@@ -136,20 +135,21 @@ def f_rot(env, a, ia, fZ, mu_ip, mu_op, tumbling=True):
     omega_peak_th = np.sqrt(6 * k * Tval / Inertia_val)  # Peak of spectrum if thermal rotation
 
     # Peak frequency for the lowest and highest values of mu_ip, mu_op
-    FGp = FGp_averaged(env, a, fZ, omega_peak_th, [min(mu_ip), max(mu_ip)], [min(mu_op), max(mu_op)], tumbling=tumbling)
+    FGp = FGp_averaged(env, a, fZ, omega_peak_th, [np.min(mu_ip), np.max(mu_ip)], [np.min(mu_op), np.max(mu_op)], tumbling=tumbling)
     Fp_th = FGp['Fp']
     Gp_th = FGp['Gp']
 
-    F_low = Fn + min(Fi) + FIR + Fpe + min(Fp_th)
-    G_low = Gn + min(Gi) + GIR + Gpe + GH2_val + min(Gp_th)
-    xi_low = 8 * G_low / F_low**2 * tau_H_val * min(tau_ed_inv_val)
+    F_low = Fn + np.min(Fi) + FIR + Fpe + np.min(Fp_th)
+    G_low = Gn + np.min(Gi) + GIR + Gpe + GH2_val + np.min(Gp_th)
+    xi_low = 8 * G_low / F_low**2 * tau_H_val * np.min(tau_ed_inv_val)
 
-    F_high = Fn + max(Fi) + FIR + Fpe + max(Fp_th)
-    G_high = Gn + max(Gi) + GIR + Gpe + GH2_val + max(Gp_th)
-    xi_high = 8 * G_high / F_high**2 * tau_H_val * max(tau_ed_inv_val)
+    F_high = Fn + np.max(Fi) + FIR + Fpe + np.max(Fp_th)
+    G_high = Gn + np.max(Gi) + GIR + Gpe + GH2_val + np.max(Gp_th)
+    xi_high = 8 * G_high / F_high**2 * tau_H_val * np.max(tau_ed_inv_val)
 
     omega_peak_low = omega_peak_th * np.sqrt(2 * G_low / F_low / (1 + np.sqrt(1 + xi_low)))
     omega_peak_high = omega_peak_th * np.sqrt(2 * G_high / F_high / (1 + np.sqrt(1 + xi_high)))
+
 
     # Array omega
     omega_min = 5e-3 * np.min((omega_peak_low, omega_peak_high))
@@ -181,7 +181,7 @@ def f_rot(env, a, ia, fZ, mu_ip, mu_op, tumbling=True):
     return {'omega': omega, 'f_a': f_a.T}  # Transpose for consistency with dimensions [Nmu, Nomega]
 
 
-def mu2_fa(env, a, ia, fZ, mu_rms, ip, Ndipole, tumbling=True):
+def mu2_fa(env, a, fZ, mu_rms, ip, Ndipole, tumbling=True):
     """
     Returns a [3, Nomega] array:
     [omega, <mu_ip^2 fa(omega)>/<mu_ip^2>, <mu_op^2 fa(omega)>/<mu_op^2>].
@@ -203,7 +203,7 @@ def mu2_fa(env, a, ia, fZ, mu_rms, ip, Ndipole, tumbling=True):
     op = 1.0 - ip  # Out-of-plane dipole moment fraction
 
     if Ndipole == 1:  # If no averaging over dipoles
-        f_rot_data = f_rot(env, a, ia, fZ, mu_rms * np.sqrt(ip), mu_rms * np.sqrt(op), tumbling=tumbling)
+        f_rot_data = f_rot(env, a, fZ, mu_rms * np.sqrt(ip), mu_rms * np.sqrt(op), tumbling=tumbling)
         omega = f_rot_data['omega']
         f_a = f_rot_data['f_a']
         Nomega = len(omega)
@@ -242,7 +242,7 @@ def mu2_fa(env, a, ia, fZ, mu_rms, ip, Ndipole, tumbling=True):
             mu_op = mu_op.flatten()
             Proba = Proba.flatten()
 
-            f_rot_data = f_rot(env, a, ia, fZ, mu_ip, mu_op, tumbling=tumbling)
+            f_rot_data = f_rot(env, a, fZ, mu_ip, mu_op, tumbling=tumbling)
             omega = f_rot_data['omega']
             f_a = f_rot_data['f_a']
             Nomega = np.size(omega)
@@ -263,7 +263,7 @@ def mu2_fa(env, a, ia, fZ, mu_rms, ip, Ndipole, tumbling=True):
             Proba = x_tab**2 * np.exp(-1.5 * x_tab**2) * Dx_tab
             Proba = Proba / np.sum(Proba)
 
-            f_rot_data = f_rot(env, a, ia, fZ, np.sqrt(2/3) * mu_rms * x_tab, mu_rms / np.sqrt(3) * x_tab, tumbling=tumbling)
+            f_rot_data = f_rot(env, a, fZ, np.sqrt(2/3) * mu_rms * x_tab, mu_rms / np.sqrt(3) * x_tab, tumbling=tumbling)
             omega = f_rot_data['omega']
             f_a = f_rot_data['f_a']
             Nomega = np.size(omega)
@@ -322,6 +322,7 @@ def fa_ip_fa_op(omega, mu_ip2_fa, mu_op2_fa):
     interp_int1 = interp1d(np.log(omega), int1, kind='cubic', fill_value="extrapolate")
     interp_int2 = interp1d(np.log(omega), int2, kind='cubic', fill_value="extrapolate")
 
+
     int0_low = interp_int0(np.log(omega[ind] / 3))
     int1_low = interp_int1(np.log(omega[ind] / 3))
     int2_low = interp_int2(np.log(omega[ind] / 3))
@@ -339,7 +340,7 @@ def fa_ip_fa_op(omega, mu_ip2_fa, mu_op2_fa):
     return result
 
 
-def dP_dnu_dOmega(env, a, ia, beta, ip, Ndipole, tumbling=True):
+def dP_dnu_dOmega(env, a, beta, ip, Ndipole, tumbling=True):
     """
     Returns the power radiated by a grain of radius `a`, per frequency interval, per steradian.
     The result is an array Power_per_grain[2, Nnu] such that:
@@ -355,7 +356,7 @@ def dP_dnu_dOmega(env, a, ia, beta, ip, Ndipole, tumbling=True):
     mu_rms = rms_dipole(a, Z2, beta)
     
     # Calculate rotational distribution for in-plane and out-of-plane dipole moments
-    mu2_fa_aux  = mu2_fa(env, a, ia, fZ, mu_rms, ip, Ndipole, tumbling=tumbling)
+    mu2_fa_aux  = mu2_fa(env, a, fZ, mu_rms, ip, Ndipole, tumbling=tumbling)
     omega = mu2_fa_aux[0, :]
     mu_ip2_fa = mu2_fa_aux[1, :]
     mu_op2_fa = mu2_fa_aux[2, :]
@@ -409,9 +410,10 @@ def emissivity(env, beta, ip, Ndipole, nu_tab, tumbling=True):
         
         # Use tumbling case only for disklike grains
         if a < grainparams.a2:
-            power_per_grain = dP_dnu_dOmega(env, a, ia, beta, ip, Ndipole, tumbling=tumbling)
+            power_per_grain = dP_dnu_dOmega(env, a, beta, ip, Ndipole, tumbling=tumbling)
         else:
-            power_per_grain = dP_dnu_dOmega(env, a, ia, beta, 2/3, Ndipole, tumbling=tumbling)
+            power_per_grain = dP_dnu_dOmega(env, a, beta, 2/3, Ndipole, tumbling=False)
+
         
         nu_tab_a = power_per_grain[0, :]
         emiss_a = power_per_grain[1, :]
