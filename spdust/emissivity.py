@@ -138,6 +138,7 @@ def f_rot(env, a, fZ, mu_ip, mu_op, tumbling=True):
     FGp = FGp_averaged(env, a, fZ, omega_peak_th, [np.min(mu_ip), np.max(mu_ip)], [np.min(mu_op), np.max(mu_op)], tumbling=tumbling)
     Fp_th = FGp['Fp']
     Gp_th = FGp['Gp']
+    
 
     F_low = Fn + np.min(Fi) + FIR + Fpe + np.min(Fp_th)
     G_low = Gn + np.min(Gi) + GIR + Gpe + GH2_val + np.min(Gp_th)
